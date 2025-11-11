@@ -1,7 +1,6 @@
 # Import the necessary libraries
 import streamlit as st  # For creating the web app interface
 import os
-import re
 from langchain_google_genai import ChatGoogleGenerativeAI  # For interacting with Google Gemini via LangChain
 from langgraph.prebuilt import create_react_agent  # For creating a ReAct agent
 from langchain_core.messages import HumanMessage, AIMessage  # For message formatting
@@ -9,34 +8,6 @@ from langchain_core.tools import tool  # For creating tools
 
 # Import our database tools (harus ada di proyek: inisialisasi, konversi teks->SQL, info schema)
 from database_tools import text_to_sql, init_database, get_database_info
-
-def clean_markdown(md: str) -> str:
-    """
-    Sederhanakan/bersihkan Markdown menjadi plain text agar tampil rapi.
-    Menghapus fences, backticks, bold/italic, heading markers, dan merapikan whitespace.
-    """
-    if not md:
-        return ""
-    s = md
-    # keep inner content of fenced blocks
-    s = re.sub(r"```(?:\w*\n)?(.*?)```", r"\1", s, flags=re.S)
-    # inline code
-    s = re.sub(r"`([^`]*)`", r"\1", s)
-    # bold/italic and underline
-    s = re.sub(r"\*\*(.*?)\*\*", r"\1", s)
-    s = re.sub(r"\*(.*?)\*", r"\1", s)
-    s = re.sub(r"__(.*?)__", r"\1", s)
-    s = re.sub(r"_(.*?)_", r"\1", s)
-    # headings
-    s = re.sub(r"^#+\s*", "", s, flags=re.M)
-    # links: [text](url) -> text (url)
-    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", s)
-    # blockquote markers
-    s = re.sub(r"^>\s?", "", s, flags=re.M)
-    # normalize multiple blank lines
-    s = re.sub(r"\n\s*\n\s*\n+", "\n\n", s)
-    # strip leading/trailing whitespace
-    return s.strip()
 
 # --- 1. Page Configuration and Title ---
 st.title("💬 Chatbot Analisa Iklan")
@@ -126,11 +97,7 @@ if reset_button:
 # --- 5. Display Past Messages ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        # Tampilkan semua pesan sebagai plain text; bersihkan markdown untuk hasil assistant
-        if msg["role"] == "assistant":
-            st.text(clean_markdown(msg["content"]))
-        else:
-            st.text(msg["content"])
+        st.markdown(msg["content"])
 
 # --- 6. Handle User Input and Agent Communication ---
 prompt = st.chat_input("Tanyakan tentang performa kampanye iklan, metrik, tren, atau rekomendasi...")
@@ -138,7 +105,7 @@ prompt = st.chat_input("Tanyakan tentang performa kampanye iklan, metrik, tren, 
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.text(prompt)
+        st.markdown(prompt)
 
     try:
         messages = []
@@ -182,7 +149,6 @@ if prompt:
         if sql_query:
             st.code(sql_query, language="sql")
 
-        # tampilkan jawaban LLM sebagai plain text yang sudah dibersihkan
-        st.text(clean_markdown(answer))
+        st.markdown(answer)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
